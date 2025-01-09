@@ -18,18 +18,18 @@ About
 | Since there was going to be a full rewrite, I decided to use Python instead of Bash since there's a Google Drive API library for Python.
 |
 | To anyone reading this, I hope you find this useful! ♪(´▽｀)
-|
+
 How-to
 ------
-- Download the latest release from the releases tab.
-- Follow the instructions in the installation_instructions directory.
+- Download the latest release from the `Releases <https://github.com/maximus-lee-678/server-auto-utils/releases>`_ tab.
+- Follow the instructions in the `installation_instructions <https://github.com/maximus-lee-678/server-auto-utils/tree/main/installation_instructions>`_ directory.
 
   - Full disclaimer, there is quite a lot to read. ☜(ﾟヮﾟ☜)
 
 Special Thanks
 --------------
-- Oracle Cloud - Always Free Server
-- gdrive2 - Original Google Drive API Binary
-- PyDrive2 - Google Drive API Python Library
-- PuTTY - SSH client
-- WinSCP - SFTP client
+- `Oracle Cloud <https://www.oracle.com/cloud/>`_ - Always Free Server
+- `gdrive2 <https://github.com/prasmussen/gdrive>`_ - Original Google Drive API Binary
+- `PyDrive2 <https://pypi.org/project/PyDrive2/>`_ - Google Drive API Python Library
+- `PuTTY <https://www.putty.org>`_ - SSH client
+- `WinSCP <https://winscp.net/eng/index.php>`_ - SFTP client
