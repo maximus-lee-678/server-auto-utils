@@ -17,7 +17,7 @@ Chapter 3: Oracle Instance Creation
 11. Leave boot and block volume defaults and click 'Create".
 12. As soon as you click "Create", you'll be redirected to the VM details page and your VM instance will be in a "PROVISIONING" state.
 13. After a while, the state will switch to "RUNNING". Find your public IP address and copy it.
-14. SSH into your instance using the generated keys. How to connect? See Section 1.1.
+14. SSH into your instance using the generated keys as the **opc** user. How to connect? See Section 1.1.
 15. After verifying the instance works, navigate back to the VM details page.
 16. Under "Instance Information", find "Primary VNIC" and click on the subnet link.
 17. Click on the default "Security List".
