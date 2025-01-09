@@ -9,7 +9,7 @@ About
 | A few years ago, I heard of a `way <https://blogs.oracle.com/developers/post/how-to-set-up-and-run-a-really-powerful-free-minecraft-server-in-the-cloud>`_ to host a powerful Minecraft server on Oracle Cloud for free.
 | It worked, so to support the server I also quickly created a bunch of Bash scripts to automate the management of the server, particularly routine backups and reboots.
 |
-| Unfortunately, after a month or so, the instance was forcibly shut down (read more about it in installation_instructions/2_oci_account.rst).
+| Unfortunately, after a month or so, the instance was forcibly shut down (read more about it `here <https://github.com/maximus-lee-678/server-auto-utils/blob/main/installation_instructions/2_oci_account.rst>`_).
 | After that, I didn't have the time to set up the server again.
 | Until about 2 and a half years later!
 |
