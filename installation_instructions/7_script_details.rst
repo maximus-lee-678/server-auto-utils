@@ -65,7 +65,7 @@ Chapter 7: Script Details
 
   .. code-block:: console
 
-    ./load_backup.py world_19700101_000000.zip
+    ./load_backup.sh world_19700101_000000.zip
 
 - If an archive name is not specified, the script will create a user prompt.
 
