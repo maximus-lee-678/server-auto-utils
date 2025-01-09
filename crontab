@@ -1,0 +1,20 @@
+# sudo crontab -e
+SHELL=/bin/bash
+MAILTO=root@example.com
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+
+# For details see man 4 crontabs
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  * user-name  command to be execute
+
+# Run daily Minecraft server shutdown, backup, and reboot workflow
+45 3 1-31 * * sudo -u opc bash -c "cd /home/opc/server_auto_utils && venv_server_auto_utils/bin/python3.12 scripts/stop.py && venv_server_auto_utils/bin/python3.12 scripts/backup.py && touch .routine_reboot" && /sbin/shutdown -r now
+
+# On reboot, check for .routine_reboot and startup if found
+@reboot sudo -u opc bash -c "cd /home/opc/server_auto_utils && venv_server_auto_utils/bin/python3.12 scripts/post_startup_check.py"
