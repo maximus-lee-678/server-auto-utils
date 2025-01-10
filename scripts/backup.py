@@ -18,6 +18,7 @@ def gdrive_auth(path_service_account_json):
     """
     Authenticate with Google Drive using a service account JSON file.
     Returns an object that can be used to interact with Google Drive.
+    API reference: https://developers.google.com/drive/api/guides/ref-search-terms
 
     :param string path_service_account_json: Path to the service account JSON file.
     """
