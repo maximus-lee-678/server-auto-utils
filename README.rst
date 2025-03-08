@@ -4,6 +4,20 @@ Server Auto Utils (Minecraft Server Automation Utilities)
 - Automatically stops, backs up, and restarts the server daily. Also uploads backups to Google Drive.
 - Logs are kept for all actions.
 
+Important Note regarding Backups
+--------------------------------
+Google has recently announced that, starting **April 15 2025** for new Service Accounts:
+
+- New service accounts will not be able to own any Drive items.
+- At this time, Google Workspace will maintain access to the My Drive of pre-existing service accounts to allow customers to keep existing internal workflows and services that rely on this storage without needing to migrate to other methods for automatic item creation.
+- To be able to upload items to Drive with service accounts created after April 15, 2025: 
+   
+  1. Upload items to Shared Drives
+  2. Set up OAuth consent to upload items on behalf of a human user
+  3. Use impersonation via domain wide delegation
+
+As such, the backup section may not be applicable anymore. Google is a fickle one...
+
 About
 -----
 | A few years ago, I heard of a `way <https://blogs.oracle.com/developers/post/how-to-set-up-and-run-a-really-powerful-free-minecraft-server-in-the-cloud>`_ to host a powerful Minecraft server on Oracle Cloud for free.
