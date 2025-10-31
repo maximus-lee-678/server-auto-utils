@@ -1,9 +1,10 @@
-from dotenv import load_dotenv
+import json
 from pathlib import Path
 from datetime import datetime
-import os
 import subprocess
 import logging
+
+ENV_JSON_PATH = Path("./env.json")
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,6 @@ EXPECTED_ENV_VARS = [
     "FORCE_SHUTDOWN_DELAY_SECONDS",
     "REBOOT_TEMP_FILE_IND"
 ]
-LOGGER_FAILED_TO_READ_ENV_MSG = "Failed to read .env file."
 
 LOG_DIRECTORY = Path("logs")
 LOG_NAME = Path(f"""{LOG_DIRECTORY}/{datetime.now().strftime('%Y-%m-%d')}.log""")
@@ -87,34 +87,22 @@ def run_command(command):
     return stdout, stderr
 
 
-def get_dotenv(dotenv_path=None):
+def get_env_json(path=ENV_JSON_PATH):
     """
-    Ascertain the existence of the .env file and all required environment variables.
-    If any are missing, log an error containing which environment variables have not been set and return None.
+    Read the env.json file and return its contents as a dictionary.
 
-    :param dotenv_path: path to the .env file. Defaults to "./.env".
+    :param path: path to the env.json file.
 
-    :return: dictionary of environment variables if all are initialised, None otherwise.
+    :return: dictionary of env.json contents.
     """
 
-    global logger
-    dotenv_path = dotenv_path or "./.env"
-
-    if not Path(dotenv_path).exists():
-        # log to root logger, can't find anywhere to log to
-        logging.error("No .env file found, please configure one using provided .env.example.")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            env_data = json.load(f)
+        return env_data
+    except Exception as e:
+        logger.critical(f"Error reading env.json file: Caught {e.__class__.__name__} Exception: {e}")
         return None
-
-    load_dotenv()
-
-    uninitialised_env_values = [var for var in EXPECTED_ENV_VARS if not os.getenv(var)]
-
-    if uninitialised_env_values:
-        logger.error(f"""Uninitialised environment variables: {", ".join(uninitialised_env_values)}""")
-        return None
-    else:
-        logger.info("All environment variables initialised.")
-        return {var: os.getenv(var) for var in EXPECTED_ENV_VARS}
 
 
 def check_for_tmux_session(session_name):

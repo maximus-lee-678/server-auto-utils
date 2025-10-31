@@ -36,6 +36,7 @@ Details
 
 Our Use Case
 ^^^^^^^^^^^^
+- We will assume we are setting a up a Minecraft server.
 - We use **2 OCPUs and 12 GB of memory** for our Minecraft server.
 - Our server runs 24/7, averaging **21%-25% CPU utilisation** and **50% memory utilisation** (Your mileage may vary...).
 - CPU utilisation spikes to **100%** during server reboot.
@@ -66,7 +67,7 @@ Details
 
 Our Use Case
 ^^^^^^^^^^^^
-- We make use of the default boot volume size of **47 GB** for our Minecraft server.
+- We make use of the default boot volume size of **47 GB** for our server.
 - We do not require additional block volumes.
 - As long as the total storage used by both boot and block volumes does not exceed 200 GB, no additional charges will be incurred.
 - Even if the instance cost calculator states `otherwise <https://www.reddit.com/r/oraclecloud/comments/14pg5dr/oracle_always_free_service_have_boot_volume_cost/>`_, no charges will be incurred as long as the total storage used does not exceed 200 GB.

@@ -1,2 +1,1 @@
-python-dotenv==1.0.1
 PyDrive2==1.21.3

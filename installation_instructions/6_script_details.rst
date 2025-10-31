@@ -1,19 +1,19 @@
-Chapter 7: Script Details
+Chapter 6: Script Details
 =========================
 | The following scripts are available in the server_auto_utils/scripts directory, and can be run using the named bash equivalents in the ez_start directory.
 | Earlier in Chapter 5, we made use of the start.sh script to start the server. This section will describe the use cases of each script.
 | The following scripts are available:
 |
-- `7.1. start.py`_
-- `7.2. stop.py`_
-- `7.3. backup.py`_
-- `7.4. load_backup.py`_
-- `7.5. post_startup_check.py`_
-- `7.6. Logging`_
+- `6.1. start.py`_
+- `6.2. stop.py`_
+- `6.3. backup.py`_
+- `6.4. load_backup.py`_
+- `6.5. post_startup_check.py`_
+- `6.6. Logging`_
 
-7.1. start.py
+6.1. start.py
 -------------
-- Starts the Minecraft server in a named tmux session.
+- Starts servers in named tmux sessions.
 
 - Automatically run when:
 
@@ -25,11 +25,18 @@ Chapter 7: Script Details
   - The server is first set up.
   - The server is stopped for any reason and needs to be started again.
 
-7.2. stop.py
+- Arguments:
+
+  - <any_number_of_instance_names>
+
+    - Starts only the specified instances.
+    - If no instance names are specified, starts all instances defined in env.json.
+
+6.2. stop.py
 ------------
-- The opposite of start.py, stops the Minecraft server.
-- Issues a stop command to the server after a specified delay.
-- This delay is set in the .env file as SHUTDOWN_DELAY_SECONDS for crontab reload workflows and FORCE_SHUTDOWN_DELAY_SECONDS for manual shutdowns.
+- The opposite of start.py, stops servers.
+- Issues a stop command to servers after a specified delay.
+- This delay is set in the env.json file as "routine_shutdown_delay_seconds" for crontab reload workflows and "force_shutdown_delay_seconds" for manual shutdowns.
 
 - Automatically run when:
 
@@ -40,9 +47,21 @@ Chapter 7: Script Details
 
   - The server needs to be stopped for any reason.
 
-7.3. backup.py
+- Arguments:
+
+  - <countdown_seconds> (optional)
+
+    - Overrides the shutdown delay from env.json's "routine_shutdown_delay_seconds" value to the specified countdown seconds.
+    - Must be a non-negative integer.
+
+  - <any_number_of_instance_names> (optional)
+
+    - Stops only the specified instances.
+    - If no instance names are specified, stops all instances defined in env.json.
+
+6.3. backup.py
 --------------
-- Backs up the Minecraft server directory to a zipped file in the backup directory.
+- Backs up server data to a zipped file in the backup directory.
 - Also uploads the zipped file to a Google Drive folder, folder ID being specified in the .env file.
 - Maintains a specified number of backups, deleting the oldest if the number exceeds the specified count. Count applies to local and Google Drive archives.
 - If the server was running, it will stop the server before backing up. After the backup is complete, it will start the server again.
@@ -56,16 +75,23 @@ Chapter 7: Script Details
 
   - A backup is needed outside the crontab workflow.
 
-7.4. load_backup.py
+- Arguments:
+
+  - <any_number_of_instance_names> (optional)
+
+    - Backs up only the specified instances.
+    - If no instance names are specified, backs up all instances defined in env.json.
+
+6.4. load_backup.py
 -------------------
-- Loads a backup from the backup directory to the Minecraft server directory.
-- Deletes the "world" directory in the server directory before unzipping the backup back to the "world" directory.
+- Loads a single backup from the backup directory to the Minecraft server directory.
+- Deletes existing data in the server directory before unzipping the backup back to the original directory.
 - If the server was running, it will stop the server before loading a backup. After the restore is complete, it will start the server again.
 - A specific archive name can be specified as an argument.
 
   .. code-block:: console
 
-    ./load_backup.sh world_19700101_000000.zip
+    ./load_backup.sh minecraft world_19700101_000000.zip
 
 - If an archive name is not specified, the script will create a user prompt.
 
@@ -80,11 +106,22 @@ Chapter 7: Script Details
 
   - A backup needs to be loaded.
 
-7.5. post_startup_check.py
+- Arguments:
+
+  - <one_instance_name> (mandatory)
+
+    - Loads backups only for the specified instance.
+
+  - <archive_name> (optional)
+
+    - Name of the archive to load.
+    - If not specified, a user prompt will be created.
+
+6.5. post_startup_check.py
 --------------------------
-- Checks for the existence of a temporary file created by the crontab reload workflow to indicate a server start is required.
+- Checks for the existence of a temporary file created by the crontab reload workflow to indicate server restarts are required.
 - This is so that the server does not automatically start after a shutdown, only starting when the crontab reload workflow is run.
-- Effectively does nothing if the file does not exist.
+- Does nothing if the temporary file does not exist.
 
 - Automatically run when:
 
@@ -94,7 +131,11 @@ Chapter 7: Script Details
 
   - **NEVER**
 
-7.6. Logging
+- Arguments:
+
+  - N/A
+
+6.6. Logging
 ------------
 | All scripts log to the **server_auto_utils/logs** directory, in addition to stdout/stderr.
 | File logs are separated by day (YYYY-mm-dd.log).

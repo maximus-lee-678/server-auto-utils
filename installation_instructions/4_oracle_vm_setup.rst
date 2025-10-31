@@ -5,7 +5,8 @@ Section 4: Oracle VM Setup
 - `4.1. Updating packages`_
 - `4.2. Installing tmux`_
 - `4.3. Installing Python 3.12`_
-- `4.4. Setting up Java`_
+- `4.4. Setting up Java (Minecraft)`_
+- `4.5. Setting up Mono (Terraria)`_
 
 4.1. Updating packages
 ----------------------
@@ -17,7 +18,7 @@ Update the package list and install the latest updates.
 
 4.2. Installing tmux
 --------------------
-tmux is a terminal multiplexer that we will use to run the Minecraft server process without keeping the SSH session open.
+tmux is a terminal multiplexer that we will use to run server processes without keeping the SSH session open.
 
   .. code-block:: console
 
@@ -81,9 +82,9 @@ tmux is a terminal multiplexer that we will use to run the Minecraft server proc
 
       sudo alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.12 1
 
-4.4. Setting up Java
---------------------
-| Java is required to run a Minecraft Server. But you already knew that...
+4.4. Setting up Java (Minecraft)
+--------------------------------
+| Java is required to run a Minecraft Server.
 | Different versions of minecraft require different versions of minecraft, for example 
 | 1.19.4 requires Java SE 17 or newer, whereas 1.21.4 requires Java SE 21 or newer.
 | Some versions also cannot use too high of a version, for example 1.19.4 breaks with Java 21.
@@ -108,3 +109,32 @@ tmux is a terminal multiplexer that we will use to run the Minecraft server proc
     sudo update-alternatives --config 'java'
 
   Select the number corresponding to Java <version number>.
+
+4.5. Setting up Mono (Terraria)
+-------------------------------
+| Mono is required to run a Terraria Server on Linux arm64 architecture.
+|
+1. Install the Mono repository.
+
+  .. code-block:: console
+
+    sudo yum install mono-complete
+
+2. If this doesn't work, try the following command and repeat step 1 after completion:
+
+  .. code-block:: console
+
+    sudo tee /etc/yum.repos.d/ol8-epel.repo > /dev/null <<'EOF'
+    [ol8_developer_EPEL]
+    name=Oracle Linux \$releasever EPEL (\$basearch)
+    baseurl=https://yum.oracle.com/repo/OracleLinux/OL8/developer/EPEL/\$basearch/
+    gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+    gpgcheck=1
+    enabled=1
+    EOF
+
+3. Verify the installation.
+
+  .. code-block:: console
+
+    mono --version

@@ -1,13 +1,71 @@
 import logging
 import sys
 import os
-import time
 from pathlib import Path
 
-import common_server_auto, stop, start
+import common_server_auto
+import stop
+import start
 
 common_server_auto.setup_logger()
 logger = logging.getLogger(__name__)
+
+
+def main(restoring_instance_name, archive_name=None):
+    """
+    :param string restoring_instance_name: Name of the instance to restore.
+    :param string/None archive_name: Name of the archive to restore from, or None to prompt user for input.
+    """
+
+    logger.info(f"SCRIPT {__name__} STARTED.")
+
+    env_data = common_server_auto.get_env_json()
+    if not env_data:
+        return
+
+    # verify specified instance exists
+    if restoring_instance_name not in env_data["instances"]:
+        logger.critical(f"Instance name '{restoring_instance_name}' not found in env.json.")
+        return
+
+    # details global to all instances
+    force_shutdown_delay_seconds = int(env_data["force_shutdown_delay_seconds"])
+
+    # details for one instance
+    instance_details = env_data["instances"][restoring_instance_name]
+    path_current_folder = instance_details["backup"]["path_folder_to_backup"]
+    path_backup_folder = instance_details["backup"]["target_backup_folder_local_path"]
+    tmux_session_name = instance_details["tmux_session_name"]
+
+    full_path_restore_from = get_restore_point(path_backup_folder, archive_name)
+    if not full_path_restore_from:
+        logger.critical(f"Restore point not found, aborting restore operation.")
+        return
+
+    session_was_running = False
+    if common_server_auto.check_for_tmux_session(tmux_session_name):
+        session_was_running = True
+
+    if session_was_running:
+        logger.info(f"tmux session is running, stopping before running the restore.")
+        stop.main(countdown_seconds=force_shutdown_delay_seconds, filter_instances=[restoring_instance_name])
+
+    # Remove existing world folder
+    logger.info(f"Removing existing world folder.")
+    output, error = common_server_auto.run_command(f"rm -rf {path_current_folder}")
+    logger.info(f"Existing world folder removed, stdout: [{output}], stderr: [{error}]")
+
+    # Load backup
+    logger.info(f"Loading backup from {full_path_restore_from}.")
+    output, error = common_server_auto.run_command(f"unzip -q {full_path_restore_from} -d {path_current_folder}")
+    logger.info(f"Backup restored, stdout: [{output}], stderr: [{error}]")
+
+    if session_was_running:
+        logger.info(f"tmux session was running before restore, restarting server.")
+        start.main(filter_instances=[restoring_instance_name])
+        logger.info(f"tmux session started.")
+
+    logger.info(f"SCRIPT {__name__} FINISHED.")
 
 
 def get_restore_point(path_backup_folder, restore_from_arg):
@@ -53,55 +111,15 @@ def get_restore_point(path_backup_folder, restore_from_arg):
     return restore_from
 
 
-def main(restore_from=None):
-    dict_dotenv = common_server_auto.get_dotenv()
-    if not dict_dotenv:
-        logger.error(common_server_auto.LOGGER_FAILED_TO_READ_ENV_MSG)
-        return
-
-    path_utils_location = dict_dotenv["PATH_UTILS_LOCATION"]
-    path_server_folder = dict_dotenv["PATH_SERVER_FOLDER"]
-    path_backup_folder = dict_dotenv["PATH_BACKUP_FOLDER"]
-    tmux_session_name = dict_dotenv["TMUX_SESSION_NAME"]
-    force_shutdown_delay_seconds = int(dict_dotenv["FORCE_SHUTDOWN_DELAY_SECONDS"])
-
-    full_path_restore_from = get_restore_point(path_backup_folder, restore_from)
-
-    session_was_running = False
-    if common_server_auto.check_for_tmux_session(tmux_session_name):
-        session_was_running = True
-
-    if session_was_running:
-        logger.info(f"tmux session is running, stopping before running the restore.")
-        common_server_auto.send_tmux_input(
-            tmux_session_name, "/say A Manual restore has been triggered, the server will shutdown in 3 seconds."
-        )
-        stop.stop(force_shutdown_delay_seconds)
-
-        # wait for tmux session to actually close
-        while 1:
-            if not common_server_auto.check_for_tmux_session(tmux_session_name):
-                break
-            time.sleep(1)
-
-        logger.info(f"tmux session stopped.")
-
-    # Remove existing world folder
-    logger.info(f"Removing existing world folder.")
-    output, error = common_server_auto.run_command(f"rm -rf {path_server_folder}/world")
-    logger.info(f"Existing world folder removed, stdout: [{output}], stderr: [{error}]")
-
-    # Load backup
-    logger.info(f"Loading backup from {full_path_restore_from}.")
-    output, error = common_server_auto.run_command(f"unzip -q {full_path_restore_from} -d {path_server_folder}/world")
-    logger.info(f"Backup restored, stdout: [{output}], stderr: [{error}]")
-
-    if session_was_running:
-        logger.info(f"tmux session was running before restore, restarting server.")
-        start.start()
-        logger.info(f"tmux session started.")
-
-
 if __name__ == "__main__":
-    arg = sys.argv[1] if len(sys.argv) > 1 else None
-    main(arg)
+    args = []
+    if len(sys.argv) == 1:
+        raise RuntimeError("No instance name provided.")
+    if len(sys.argv) > 1:
+        args.append(sys.argv[1])
+    if len(sys.argv) > 2:
+        args.append(sys.argv[2])
+    if len(sys.argv) > 3:
+        raise RuntimeError("Too many arguments provided.")
+
+    main(*args)
