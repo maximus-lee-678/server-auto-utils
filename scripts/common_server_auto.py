@@ -8,22 +8,6 @@ ENV_JSON_PATH = Path("./env.json")
 
 logger = logging.getLogger(__name__)
 
-# List of environment variables that are expected to be set in the .env file.
-EXPECTED_ENV_VARS = [
-    "GDRIVE_BACKUP_FOLDER_ID",
-    "PATH_UTILS_LOCATION",
-    "SERVICE_ACCOUNT_JSON_NAME",
-    "PATH_SERVER_FOLDER",
-    "PATH_BACKUP_FOLDER",
-    "BACKUP_COUNT",
-    "BACKUP_COMPRESSION_LEVEL",
-    "TMUX_SESSION_NAME",
-    "STARTUP_COMMAND",
-    "SHUTDOWN_DELAY_SECONDS",
-    "FORCE_SHUTDOWN_DELAY_SECONDS",
-    "REBOOT_TEMP_FILE_IND"
-]
-
 LOG_DIRECTORY = Path("logs")
 LOG_NAME = Path(f"""{LOG_DIRECTORY}/{datetime.now().strftime('%Y-%m-%d')}.log""")
 LOG_FORMAT = "[%(asctime)s] [%(filename)s/%(levelname)s]: %(message)s"
