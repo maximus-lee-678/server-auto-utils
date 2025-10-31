@@ -1,15 +1,19 @@
-import common_server_auto
 import time
 import sys
 import os
+import logging
+
+import common_server_auto
+
+common_server_auto.setup_logger()
+logger = logging.getLogger(__name__)
 
 SHUTDOWN_MESSAGE = "/say Server will shutdown in {0}m{1}s."
 FINAL_SHUTDOWN_MESSAGE = "/say Server will now shutdown!"
 DEFAULT_STOP_COMMAND = "/stop"
 
-def main(countdown_seconds=None):
-    logger = common_server_auto.start_logger(os.path.basename(__file__))
 
+def main(countdown_seconds=None):
     dict_dotenv = common_server_auto.get_dotenv()
     if not dict_dotenv:
         logger.error(common_server_auto.LOGGER_FAILED_TO_READ_ENV_MSG)
@@ -17,8 +21,6 @@ def main(countdown_seconds=None):
 
     path_utils_location = dict_dotenv["PATH_UTILS_LOCATION"]
     tmux_session_name = dict_dotenv["TMUX_SESSION_NAME"]
-
-    common_server_auto.add_file_logger(os.path.basename(__file__), path_utils_location)
 
     shutdown_delay_seconds = int(dict_dotenv["SHUTDOWN_DELAY_SECONDS"]) if not countdown_seconds else countdown_seconds
 

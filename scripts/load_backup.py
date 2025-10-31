@@ -1,13 +1,13 @@
-import common_server_auto
-import stop
-import start
+import logging
 import sys
 import os
 import time
 from pathlib import Path
 
+import common_server_auto, stop, start
 
-logger = None
+common_server_auto.setup_logger()
+logger = logging.getLogger(__name__)
 
 
 def get_restore_point(path_backup_folder, restore_from_arg):
@@ -46,29 +46,24 @@ def get_restore_point(path_backup_folder, restore_from_arg):
         if not Path(f"{path_backup_folder}/{restore_from}").exists():
             logger.error(f"User-specified archive {restore_from} not found in backup folder.")
             return None
-        
+
         restore_from = f"{path_backup_folder}/{restore_from}"
-    
+
     logger.info(f"Archive found at: {restore_from}")
     return restore_from
 
 
 def main(restore_from=None):
-    global logger
-    logger = common_server_auto.start_logger(os.path.basename(__file__))
-
     dict_dotenv = common_server_auto.get_dotenv()
     if not dict_dotenv:
         logger.error(common_server_auto.LOGGER_FAILED_TO_READ_ENV_MSG)
         return
-    
+
     path_utils_location = dict_dotenv["PATH_UTILS_LOCATION"]
     path_server_folder = dict_dotenv["PATH_SERVER_FOLDER"]
     path_backup_folder = dict_dotenv["PATH_BACKUP_FOLDER"]
     tmux_session_name = dict_dotenv["TMUX_SESSION_NAME"]
     force_shutdown_delay_seconds = int(dict_dotenv["FORCE_SHUTDOWN_DELAY_SECONDS"])
-
-    common_server_auto.add_file_logger(os.path.basename(__file__), path_utils_location)
 
     full_path_restore_from = get_restore_point(path_backup_folder, restore_from)
 
