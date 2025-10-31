@@ -5,6 +5,8 @@ import os
 import subprocess
 import logging
 
+logger = logging.getLogger(__name__)
+
 # List of environment variables that are expected to be set in the .env file.
 EXPECTED_ENV_VARS = [
     "GDRIVE_BACKUP_FOLDER_ID",
@@ -21,75 +23,46 @@ EXPECTED_ENV_VARS = [
     "REBOOT_TEMP_FILE_IND"
 ]
 LOGGER_FAILED_TO_READ_ENV_MSG = "Failed to read .env file."
-DIR_NAME_LOGS = "logs"
-LOG_FORMAT = "[%(asctime)s] [%(name)s/%(levelname)s]: %(message)s"
 
-logger = None
+LOG_DIRECTORY = Path("logs")
+LOG_NAME = Path(f"""{LOG_DIRECTORY}/{datetime.now().strftime('%Y-%m-%d')}.log""")
+LOG_FORMAT = "[%(asctime)s] [%(filename)s/%(levelname)s]: %(message)s"
 
-def start_logger(script_name):
+
+def setup_logger(write_to_file=True):
     """
-    Starts a logger for a script.
+    Setup a simple logger.
 
-    :param script_name: name of the script to log for. usually passed in as os.path.basename(__file__).
+    :param write_to_file: whether to write logs to file.
 
     :return: logger object.
     """
 
-    logger = logging.getLogger(script_name)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
 
-    if not logger.hasHandlers():
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(LOG_FORMAT)
-        console_handler.setFormatter(formatter)
+    # Clear existing handlers to avoid duplicates
+    if getattr(root_logger, "_is_configured", False):
+        return root_logger
 
-        logger.addHandler(console_handler)
-        logger.setLevel(logging.INFO)
-
-    logger.propagate = False
-
-    return logger
-
-
-def add_file_logger(script_name, path_utils_location):
-    """
-    Adds a file logger to the logger object. 
-    In order to log to a file, the logger must first be created with start_logger().
-
-    :param script_name: name of the script to log for. usually passed in as os.path.basename(__file__).
-    :param path_utils_location: path to the utils folder. used to determine where to store logs.
-    """
-
-    logger = logging.getLogger(script_name)
-    if any(isinstance(h, logging.FileHandler) for h in logger.handlers):
-        return
-
-    log_directory = Path(f"{path_utils_location}/{DIR_NAME_LOGS}")
-    log_filename = Path(f"{log_directory}/{datetime.now().strftime('%Y-%m-%d')}.log")
-    log_directory.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-
-    file_handler = logging.FileHandler(log_filename)
-    file_handler.setLevel(logging.INFO)
+    # Normal single-process logging setup (multithreading logging is thread-safe)
     formatter = logging.Formatter(LOG_FORMAT)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
 
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
 
-def _get_common_logger(path_utils_location):
-    """
-    Internal function to get a logger for use specifically by this script. Updates the global logger variable.
-    Since this logger may be used before log file locations are set, it may not log to a file. If so, it will log this information to the stdout logger.
+    if write_to_file:
+        LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(LOG_NAME, "a", encoding="utf-8")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
-    :param path_utils_location: path to the utils folder. used to determine where to store logs.
-    """
+    root_logger._is_configured = True
 
-    global logger
-    logger = start_logger(os.path.basename(__file__))
-
-    if path_utils_location:
-        add_file_logger(os.path.basename(__file__), path_utils_location)
-    else:
-        logger.error("path_utils_location not set, cannot log to file.")
+    return root_logger
 
 
 def run_command(command):
@@ -133,9 +106,6 @@ def get_dotenv(dotenv_path=None):
         return None
 
     load_dotenv()
-
-    if not logger:
-        _get_common_logger(os.getenv("PATH_UTILS_LOCATION"))
 
     uninitialised_env_values = [var for var in EXPECTED_ENV_VARS if not os.getenv(var)]
 

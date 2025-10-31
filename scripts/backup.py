@@ -1,17 +1,20 @@
-import common_server_auto
 import stop
 import start
 import os
 import json
 import time
+import logging
 from datetime import datetime
 from pathlib import Path
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
+import common_server_auto
 
-logger = None
+
+common_server_auto.setup_logger()
+logger = logging.getLogger(__name__)
 
 
 def gdrive_auth(path_service_account_json):
@@ -100,9 +103,6 @@ def gdrive_housekeeping(drive, service_account_email, ids_to_keep):
 
 
 def main():
-    global logger
-    logger = common_server_auto.start_logger(os.path.basename(__file__))
-
     datetime_now = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     dict_dotenv = common_server_auto.get_dotenv()
@@ -119,8 +119,6 @@ def main():
     backup_compression_level = dict_dotenv["BACKUP_COMPRESSION_LEVEL"]
     tmux_session_name = dict_dotenv["TMUX_SESSION_NAME"]
     force_shutdown_delay_seconds = int(dict_dotenv["FORCE_SHUTDOWN_DELAY_SECONDS"])
-
-    common_server_auto.add_file_logger(os.path.basename(__file__), path_utils_location)
 
     session_was_running = False
     if common_server_auto.check_for_tmux_session(tmux_session_name):
