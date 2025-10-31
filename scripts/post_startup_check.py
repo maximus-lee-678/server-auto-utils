@@ -1,34 +1,37 @@
 import logging
 from pathlib import Path
-import os
 
-import common_server_auto, start
+import common_server_auto
+import start
 
 common_server_auto.setup_logger()
 logger = logging.getLogger(__name__)
 
+
 def main():
-    dict_dotenv = common_server_auto.get_dotenv()
-    if not dict_dotenv:
-        logger.error(common_server_auto.LOGGER_FAILED_TO_READ_ENV_MSG)
+    logger.info(f"SCRIPT {__name__} STARTED.")
+
+    env_data = common_server_auto.get_env_json()
+    if not env_data:
         return
 
-    path_utils_location = dict_dotenv["PATH_UTILS_LOCATION"]
-    reboot_temp_file_ind = dict_dotenv["REBOOT_TEMP_FILE_IND"]
+    # details global to all instances
+    path_utils_location = env_data["path_utils_location"]
+    reboot_temp_file = env_data["reboot_temp_file"]
 
-    local_filepath_to_check = Path(f"{path_utils_location}/{reboot_temp_file_ind}")
+    local_filepath_to_check = Path(f"""{path_utils_location}/{reboot_temp_file}""")
     if not local_filepath_to_check.exists():
-        logger.info(f"No {reboot_temp_file_ind} file found, skipping post-startup server restart.")
+        logger.info(f"No {reboot_temp_file} file found, skipping post-startup server restart(s).")
         return
-    
-    logger.info(f"{reboot_temp_file_ind} file found, restarting server.")
-    start.start()
-    logger.info(f"tmux session started.")
+
+    logger.info(f"{reboot_temp_file} file found, restarting server(s).")
+    start.main()
+    logger.info(f"tmux session(s) started.")
 
     Path(local_filepath_to_check).unlink()
-    logger.info(f"Removed {reboot_temp_file_ind} file.")
+    logger.info(f"Removed {reboot_temp_file} file.")
 
-    logger.info("Server restart complete.")
+    logger.info(f"SCRIPT {__name__} FINISHED.")
 
 
 if __name__ == "__main__":
