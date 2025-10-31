@@ -13,7 +13,7 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 # |  |  |  |  |
 # *  *  *  *  * user-name  command to be execute
 
-# Run daily Minecraft server shutdown, backup, and reboot workflow
+# Run daily server shutdown, backup, and reboot workflow
 45 3 1-31 * * sudo -u opc bash -c "cd /home/opc/server_auto_utils && venv_server_auto_utils/bin/python3.12 scripts/stop.py && venv_server_auto_utils/bin/python3.12 scripts/backup.py && touch .routine_reboot" && /sbin/shutdown -r now
 
 # On reboot, check for .routine_reboot and startup if found
