@@ -166,11 +166,11 @@ def main(filter_instances=None):
         logger.info(f"[{i + 1}/{count_instances}] Finished backup sequence for instance '{instance_name}'.")
 
     # gdrive: housekeeping (delete files deleted by other users)
-    logger.info(f"[{i + 1}/{count_instances}] Housekeeping files deleted by other users in Google Drive.")
+    logger.info(f"[FINAL] Housekeeping files deleted by other users in Google Drive.")
     gdrive_housekeeping(
         drive=drive, service_account_email=service_account_email, ids_to_keep=ids_to_not_housekeep
     )
-    logger.info(f"[{i + 1}/{count_instances}] Housekeeping complete.")
+    logger.info(f"[FINAL] Housekeeping complete.")
 
     about = drive.GetAbout()
     logger.info(
