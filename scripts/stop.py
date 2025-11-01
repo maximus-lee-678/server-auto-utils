@@ -31,7 +31,7 @@ def main(countdown_seconds=None, filter_instances=None):
                 logger.critical(f"Instance name '{instance_name}' not found in env.json.")
                 return
     else:
-        instances = env_data["instances"].keys()
+        instances = list(env_data["instances"].keys())
         logger.info(f"""Stopping all instances: {instances}""")
 
     # details global to all instances

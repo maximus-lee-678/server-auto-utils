@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import time
+import copy
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -32,18 +33,20 @@ def main(filter_instances=None):
     if not env_data:
         return
 
+    # unlike other scripts, regardless of filter_instances, we still iterate through all instances
+    # this is because we need to perform gdrive housekeeping across all instances even if nothing was uploaded
+    instances_all = list(env_data["instances"].keys())
     if filter_instances:
-        instances = filter_instances
-        logger.info(f"""Filtering to backup only instances: {instances}""")
+        logger.info(f"""Filtering to backup only instances: {filter_instances}""")
 
         # verify specified instance(s) exists
-        for instance_name in instances:
+        for instance_name in filter_instances:
             if instance_name not in env_data["instances"]:
                 logger.critical(f"Instance name '{instance_name}' not found in env.json.")
                 return
     else:
-        instances = env_data["instances"].keys()
-        logger.info(f"""Backing up all instances: {instances}""")
+        filter_instances = copy.deepcopy(instances_all)
+        logger.info(f"""Backing up all instances: {filter_instances}""")
 
     # details global to all instances
     path_utils_location = env_data["path_utils_location"]
@@ -60,10 +63,10 @@ def main(filter_instances=None):
         return
 
     # loop through instances to backup
-    count_instances = len(instances)
+    count_instances = len(instances_all)
     ids_to_not_housekeep = []
-    for i, instance_name in enumerate(instances):
-        logger.info(f"[{i + 1}/{count_instances}] Starting backup for instance '{instance_name}'.")
+    for i, instance_name in enumerate(instances_all):
+        logger.info(f"[{i + 1}/{count_instances}] Starting backup sequence for instance '{instance_name}'.")
 
         session_was_running = False
 
@@ -82,65 +85,76 @@ def main(filter_instances=None):
             logger.info(f"[{i + 1}/{count_instances}] Backup disabled for instance '{instance_name}', skipping.")
             continue
 
-        arc_name = arc_name_template.format(timestamp=datetime_now)
-        zip_file_path = f"{target_backup_folder_local_path}/{arc_name}"
+        if instance_name in filter_instances:
+            logger.info(f"[{i + 1}/{count_instances}] Starting backup process for instance '{instance_name}'.")
 
-        if common_server_auto.check_for_tmux_session(tmux_session_name):
-            session_was_running = True
-            logger.info(f"[{i + 1}/{count_instances}] tmux session is running, stopping before running the backup.")
-            stop.main(countdown_seconds=force_shutdown_delay_seconds, filter_instances=[instance_name])
+            arc_name = arc_name_template.format(timestamp=datetime_now)
+            zip_file_path = f"{target_backup_folder_local_path}/{arc_name}"
 
-        if not Path(target_backup_folder_local_path).exists():
-            logger.info(f"[{i + 1}/{count_instances}] Creating local backup folder at {target_backup_folder_local_path}.")
-            os.makedirs(target_backup_folder_local_path)
-            logger.info(f"[{i + 1}/{count_instances}] Created local backup folder.")
+            if common_server_auto.check_for_tmux_session(tmux_session_name):
+                session_was_running = True
+                logger.info(f"[{i + 1}/{count_instances}] tmux session is running, stopping before running the backup.")
+                stop.main(countdown_seconds=force_shutdown_delay_seconds, filter_instances=[instance_name])
 
-        # local: make backup
-        local_make_backup(
-            path_source_folder=path_folder_to_backup, path_backup_folder=target_backup_folder_local_path,
-            arc_name=arc_name, backup_compression_level=backup_compression_level
-        )
+            if not Path(target_backup_folder_local_path).exists():
+                logger.info(f"[{i + 1}/{count_instances}] Creating local backup folder at {target_backup_folder_local_path}.")
+                os.makedirs(target_backup_folder_local_path)
+                logger.info(f"[{i + 1}/{count_instances}] Created local backup folder.")
 
-        # local: manage backups (keep only n most recent)
-        local_manage_backups(path_backup_folder=target_backup_folder_local_path, backup_count=backup_count)
-
-        # occassionally after upload, the new file will not be listed by gdrive's GetList() call immediately.
-        # this causes the removal of the oldest backup by gdrive_manage_backups() to fail,
-        # which then causes the newly uploaded file to be pruned by gdrive_housekeeping() since it wasnt in the old list.
-        # to mitigate this, we record the original file list length before upload and wait for the new file to appear in the list after upload.
-        gdrive_backup_count_original = len(gdrive_get_file_list(
-            drive=drive, folder_id=target_backup_folder_gdrive_id, service_account_email=service_account_email
-        ))
-
-        # gdrive: upload
-        logger.info(f"[{i + 1}/{count_instances}] Uploading backup {zip_file_path} to Google Drive.")
-        gdrive_upload(
-            drive=drive, path_to_file=zip_file_path, title=arc_name, folder_id=target_backup_folder_gdrive_id
-        )
-        logger.info(f"[{i + 1}/{count_instances}] Uploaded to Google Drive.")
-
-        # gdrive: await upload detected
-        upload_successful = False
-        logger.info(f"[{i + 1}/{count_instances}] Awaiting upload detection in Google Drive.")
-        for await_interval in GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS:
-            gdrive_backup_count_new = len(gdrive_get_file_list(
-                drive=drive, folder_id=target_backup_folder_gdrive_id, service_account_email=service_account_email
-            ))
-            if gdrive_backup_count_new > gdrive_backup_count_original:
-                upload_successful = True
-                break
-            else:
-                logger.info(f"[{i + 1}/{count_instances}] Upload not yet detected, backing off for {await_interval} seconds.")
-                time.sleep(await_interval)
-        logger.info(f"[{i + 1}/{count_instances}] Upload found in Google Drive.")
-
-        if not upload_successful:
-            logger.critical(
-                f"[{i + 1}/{count_instances}] Upload to Google Drive not detected after waiting for {GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS} seconds.")
-            raise RuntimeError(
-                f"[{i + 1}/{count_instances}] Upload to Google Drive not detected after waiting for {GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS} seconds."
+            # local: make backup
+            local_make_backup(
+                path_source_folder=path_folder_to_backup, path_backup_folder=target_backup_folder_local_path,
+                arc_name=arc_name, backup_compression_level=backup_compression_level
             )
 
+            # local: manage backups (keep only n most recent)
+            local_manage_backups(path_backup_folder=target_backup_folder_local_path, backup_count=backup_count)
+
+            # occassionally after upload, the new file will not be listed by gdrive's GetList() call immediately.
+            # this causes the removal of the oldest backup by gdrive_manage_backups() to fail,
+            # which then causes the newly uploaded file to be pruned by gdrive_housekeeping() since it wasnt in the old list.
+            # to mitigate this, we record the original file list length before upload and wait for the new file to appear in the list after upload.
+            gdrive_backup_count_original = len(gdrive_get_file_list(
+                drive=drive, folder_id=target_backup_folder_gdrive_id, service_account_email=service_account_email
+            ))
+
+            # gdrive: upload
+            logger.info(f"[{i + 1}/{count_instances}] Uploading backup {zip_file_path} to Google Drive.")
+            gdrive_upload(
+                drive=drive, path_to_file=zip_file_path, title=arc_name, folder_id=target_backup_folder_gdrive_id
+            )
+            logger.info(f"[{i + 1}/{count_instances}] Uploaded to Google Drive.")
+
+            # gdrive: await upload detected
+            upload_successful = False
+            logger.info(f"[{i + 1}/{count_instances}] Awaiting upload detection in Google Drive.")
+            for await_interval in GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS:
+                gdrive_backup_count_new = len(gdrive_get_file_list(
+                    drive=drive, folder_id=target_backup_folder_gdrive_id, service_account_email=service_account_email
+                ))
+                if gdrive_backup_count_new > gdrive_backup_count_original:
+                    upload_successful = True
+                    break
+                else:
+                    logger.info(f"[{i + 1}/{count_instances}] Upload not yet detected, backing off for {await_interval} seconds.")
+                    time.sleep(await_interval)
+            logger.info(f"[{i + 1}/{count_instances}] Upload found in Google Drive.")
+
+            if not upload_successful:
+                logger.critical(
+                    f"[{i + 1}/{count_instances}] Upload to Google Drive not detected after waiting for {GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS} seconds.")
+                raise RuntimeError(
+                    f"[{i + 1}/{count_instances}] Upload to Google Drive not detected after waiting for {GDRIVE_AWAIT_UPLOAD_DETECTED_INTERVALS} seconds."
+                )
+
+            if session_was_running:
+                logger.info(f"[{i + 1}/{count_instances}] tmux session was running before backup, restarting server.")
+                start.main(filter_instances=[instance_name])
+                logger.info(f"[{i + 1}/{count_instances}] tmux session started.")
+        else:
+            logger.info(f"[{i + 1}/{count_instances}] Skipping backup creation for instance '{instance_name}', not in filter list.")
+
+        # this step always runs even for skipped instances
         # gdrive: prune old backups (keep only n most recent)
         logger.info(f"[{i + 1}/{count_instances}] Pruning backups in Google Drive.")
         ids_backup_list = gdrive_manage_backups(drive=drive, folder_id=target_backup_folder_gdrive_id,
@@ -149,10 +163,7 @@ def main(filter_instances=None):
 
         ids_to_not_housekeep.extend(ids_backup_list)
 
-        if session_was_running:
-            logger.info(f"[{i + 1}/{count_instances}] tmux session was running before backup, restarting server.")
-            start.main(filter_instances=[instance_name])
-            logger.info(f"[{i + 1}/{count_instances}] tmux session started.")
+        logger.info(f"[{i + 1}/{count_instances}] Finished backup sequence for instance '{instance_name}'.")
 
     # gdrive: housekeeping (delete files deleted by other users)
     logger.info(f"[{i + 1}/{count_instances}] Housekeeping files deleted by other users in Google Drive.")
@@ -237,19 +248,28 @@ def gdrive_manage_backups(drive, folder_id, service_account_email, backup_count)
     """
 
     file_list = gdrive_get_file_list(drive, folder_id, service_account_email)
-
     sorted_file_list = sorted(file_list, key=lambda x: x["createdDate"])
-    if len(file_list) > int(backup_count):
-        gdrive_object_id_to_remove = sorted_file_list[0]["id"]
-        # cannot use gdrive_object_to_remove["title"] as it would have been deleted
-        gdrive_object_name_to_remove = sorted_file_list[0]["title"]
-        gdrive_object_to_remove = drive.CreateFile({"id": gdrive_object_id_to_remove})
+    file_count_to_remove = len(file_list) - int(backup_count)
 
-        logger.info(f"Removing oldest backup {gdrive_object_name_to_remove}.")
-        gdrive_object_to_remove.Delete()
+    if file_count_to_remove > 0:
+        logger.info(
+            f"Number of backups ({len(file_list)}) exceeds limit ({backup_count}), removing {file_count_to_remove} oldest backup(s)."
+        )
+        for i in range(file_count_to_remove):
+            gdrive_object_id_to_remove = sorted_file_list[i]["id"]
+            # cannot use gdrive_object_to_remove["title"] as it would have been deleted
+            gdrive_object_name_to_remove = sorted_file_list[i]["title"]
+            gdrive_object_to_remove = drive.CreateFile({"id": gdrive_object_id_to_remove})
+
+            logger.info(f"Removing backup {gdrive_object_name_to_remove}.")
+            gdrive_object_to_remove.Delete()
+            logger.info(f"""Removed backup {gdrive_object_name_to_remove}.""")
+    else:
+        file_count_to_remove = 0
+    logger.info(f"Final Google Drive owned file count: {len(sorted_file_list) - file_count_to_remove}.")
+
+    for _ in range(file_count_to_remove):
         sorted_file_list.pop(0)
-        logger.info(f"""Removed oldest backup {gdrive_object_name_to_remove}.""")
-    logger.info(f"Google Drive owned file count: {len(file_list) - 1 if len(file_list) > int(backup_count) else len(file_list)}.")
 
     return [file["id"] for file in sorted_file_list]
 

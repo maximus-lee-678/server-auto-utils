@@ -28,7 +28,7 @@ def main(filter_instances=None):
                 logger.critical(f"Instance name '{instance_name}' not found in env.json.")
                 return
     else:
-        instances = env_data["instances"].keys()
+        instances = list(env_data["instances"].keys())
         logger.info(f"""Starting all instances: {instances}""")
 
     # loop through instances to start
