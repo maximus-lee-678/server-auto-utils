@@ -54,13 +54,17 @@ def main(filter_instances=None):
     force_shutdown_delay_seconds = int(env_data["force_shutdown_delay_seconds"])
 
     # init gdrive
-    service_account_json_path = Path(f"{path_utils_location}/{service_account_json_name}")
-    drive = gdrive_auth(service_account_json_path)
-    try:
-        service_account_email = json.loads(open(service_account_json_path).read())["client_email"]
-    except Exception as e:
-        logger.critical(f"Error reading service account email: Caught {e.__class__.__name__} Exception: {e}")
-        return
+    if not service_account_json_name:
+        logger.warning("No service account JSON specified, skipping backup to Google Drive.")
+        drive = None
+    else:
+        service_account_json_path = Path(f"{path_utils_location}/{service_account_json_name}")
+        drive = gdrive_auth(service_account_json_path)
+        try:
+            service_account_email = json.loads(open(service_account_json_path).read())["client_email"]
+        except Exception as e:
+            logger.critical(f"Error reading service account email: Caught {e.__class__.__name__} Exception: {e}")
+            return
 
     # loop through instances to backup
     count_instances = len(instances_all)
@@ -172,11 +176,14 @@ def main(filter_instances=None):
     )
     logger.info(f"[FINAL] Housekeeping complete.")
 
-    about = drive.GetAbout()
-    logger.info(
-        f"""Storage: {int(about["quotaBytesUsed"]) / (1024 ** 3):.2f} GB \
-of {int(about["quotaBytesTotal"]) / (1024 ** 3):.2f} GB used."""
-    )
+    if drive:
+        about = drive.GetAbout()
+        logger.info(
+            f"""Storage: {int(about["quotaBytesUsed"]) / (1024 ** 3):.2f} GB \
+    of {int(about["quotaBytesTotal"]) / (1024 ** 3):.2f} GB used."""
+        )
+    else:
+        logger.info("No Google Drive object provided, skipping storage usage report.")
 
     logger.info(f"SCRIPT {__name__} FINISHED.")
 
@@ -213,6 +220,10 @@ def gdrive_upload(drive, path_to_file, title, folder_id):
     :return: None
     """
 
+    if not drive:
+        logger.info("No Google Drive object provided, skipping upload.")
+        return
+
     file = drive.CreateFile({"title": title, "parents": [{"id": folder_id}]})
     file.SetContentFile(path_to_file)
     file.Upload()
@@ -228,6 +239,10 @@ def gdrive_get_file_list(drive, folder_id, service_account_email):
 
     :return: List of files in the folder owned by the service account.
     """
+
+    if not drive:
+        logger.info("No Google Drive object provided, returning empty file list.")
+        return []
 
     query = {"q": f"\"{folder_id}\" in parents and '{service_account_email}' in owners and trashed=false"}
     file_list = drive.ListFile(query).GetList()
@@ -246,6 +261,10 @@ def gdrive_manage_backups(drive, folder_id, service_account_email, backup_count)
 
     :return: List of IDs of the backups that are kept.
     """
+
+    if not drive:
+        logger.info("No Google Drive object provided, skipping backup management.")
+        return []
 
     file_list = gdrive_get_file_list(drive, folder_id, service_account_email)
     sorted_file_list = sorted(file_list, key=lambda x: x["createdDate"])
@@ -285,6 +304,10 @@ def gdrive_housekeeping(drive, service_account_email, ids_to_keep):
 
     :return: None
     """
+
+    if not drive:
+        logger.info("No Google Drive object provided, skipping housekeeping.")
+        return
 
     query = {"q": f"'{service_account_email}' in owners"}
     file_list = drive.ListFile(query).GetList()

@@ -6,7 +6,7 @@ Server Auto Utils (Game Server Automation Utilities)
 
 Important Note regarding Backups
 --------------------------------
-Google has recently announced that, starting **April 15 2025** for new Service Accounts:
+Google has recently announced that starting **April 15 2025** for new Service Accounts:
 
 - New service accounts will not be able to own any Drive items.
 - At this time, Google Workspace will maintain access to the My Drive of pre-existing service accounts to allow customers to keep existing internal workflows and services that rely on this storage without needing to migrate to other methods for automatic item creation.
@@ -16,9 +16,9 @@ Google has recently announced that, starting **April 15 2025** for new Service A
   2. Set up OAuth consent to upload items on behalf of a human user
   3. Use impersonation via domain wide delegation
 
-As such, the backup section only applies to legacy service accounts. Google is a fickle one...
-If you wish to continue without backing up, set all ["instances"]["instance_details"]["backup"]["do"] keys to false.
-
+| As such, the backup section only applies to legacy service accounts. Google is a fickle one...
+| If you wish to continue without backing up to the cloud, set service_account_json_name to null in env.json.
+| 
 About
 -----
 | A few years ago, I heard of a `way <https://blogs.oracle.com/developers/post/how-to-set-up-and-run-a-really-powerful-free-minecraft-server-in-the-cloud>`_ to host a powerful Minecraft server on Oracle Cloud for free.
@@ -34,7 +34,7 @@ About
 |
 | Additionally, I decided to make the scripts more general so that they can be used for other game servers as well. 
 | As of writing, I've tested it with:
-
+|
 - Minecraft
 - Terraria
 
