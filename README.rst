@@ -33,10 +33,11 @@ About
 | Since there was going to be a full rewrite, I decided to use Python instead of Bash since there's a Google Drive API library for Python.
 |
 | Additionally, I decided to make the scripts more general so that they can be used for other game servers as well. 
-| As of writing, I've tested it with:
+| As of writing, I've tested it on Oracle Linux 10 with:
 |
 - Minecraft
 - Terraria
+- Hytale
 
 To anyone reading this, I hope you find this useful! ♪(´▽｀)
 

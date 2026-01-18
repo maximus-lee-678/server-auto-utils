@@ -14,7 +14,8 @@ server_auto_utils + env.json Setup
 
   .. code-block:: console
     
-    unzip -q server_auto_utils.zip -d .
+    unzip -q server_auto_utils.zip -d ./server_auto_utils
+    rm server_auto_utils.zip
 
 4. Alternatively, you could unzip it locally and use scp to transfer the files, either using a SCP tool like WinSCP or the command line.
 5. Cd into the server_auto_utils directory.
