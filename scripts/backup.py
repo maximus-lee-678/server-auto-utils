@@ -272,7 +272,7 @@ def gdrive_manage_backups(drive, folder_id, service_account_email, backup_count)
 
     if file_count_to_remove > 0:
         logger.info(
-            f"Number of backups ({len(file_list)}) exceeds limit ({backup_count}), removing {file_count_to_remove} oldest backup(s)."
+            f"Number of cloud backups ({len(file_list)}) exceeds limit ({backup_count}), removing {file_count_to_remove} oldest backup(s)."
         )
         for i in range(file_count_to_remove):
             gdrive_object_id_to_remove = sorted_file_list[i]["id"]
@@ -284,7 +284,8 @@ def gdrive_manage_backups(drive, folder_id, service_account_email, backup_count)
             gdrive_object_to_remove.Delete()
             logger.info(f"""Removed backup {gdrive_object_name_to_remove}.""")
     else:
-        file_count_to_remove = 0
+        file_count_to_remove = 0  # clamp to 0 so final count is correct
+
     logger.info(f"Final Google Drive owned file count: {len(sorted_file_list) - file_count_to_remove}.")
 
     for _ in range(file_count_to_remove):
@@ -358,15 +359,26 @@ def local_manage_backups(path_backup_folder, backup_count):
     :return: None
     """
 
-    # Remove oldest local backup if the number of backups exceeds the limit
+    # Remove oldest local backup(s) if the number of backups exceeds the limit
     backup_list = sorted(Path(path_backup_folder).iterdir(), key=os.path.getmtime)
-    if len(backup_list) > int(backup_count):
-        local_filepath_to_remove = backup_list[0]
-        logger.info(f"Removing oldest backup {local_filepath_to_remove}.")
-        os.remove(local_filepath_to_remove)
-        backup_list.remove(local_filepath_to_remove)
-        logger.info(f"Removed oldest backup.")
-    logger.info(f"Local backup count: {len(backup_list)}.")
+    num_local_backups = len(backup_list)
+    backup_count = int(backup_count)
+    file_count_to_remove = num_local_backups - backup_count
+
+    if file_count_to_remove > 0:
+        logger.info(
+            f"Number of local backups ({num_local_backups}) exceeds limit ({backup_count}), removing {num_local_backups - backup_count} oldest backup(s)."
+        )
+        for i in range(file_count_to_remove):
+            local_filepath_to_remove = backup_list[i]
+            logger.info(f"Removing oldest backup {local_filepath_to_remove}.")
+            os.remove(local_filepath_to_remove)
+            backup_list.remove(local_filepath_to_remove)
+            logger.info(f"Removed oldest backup.")
+    else:
+        file_count_to_remove = 0  # clamp to 0 so final count is correct
+
+    logger.info(f"Final local backup count: {backup_count - file_count_to_remove}.")
 
 
 if __name__ == "__main__":
